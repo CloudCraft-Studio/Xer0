@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:reins/Constants/constants.dart';
+import 'package:reins/Utils/material_color_adapter.dart';
+
+/// Cyberpunk seed palette (neon on dark), used by the theme picker.
+final Map<String, MaterialColor> kCyberpunkColors = {
+  'Cyan': buildMaterialColor(0xFF22D3EE),
+  'Magenta': buildMaterialColor(0xFFFF2BD6),
+  'Violet': buildMaterialColor(0xFF8B5CF6),
+  'Neon': buildMaterialColor(0xFF00FF9C),
+  'Blue': buildMaterialColor(0xFF3B82F6),
+  'Amber': buildMaterialColor(0xFFF59E0B),
+};
 
 class ThemesSettings extends StatefulWidget {
   const ThemesSettings({super.key});
@@ -57,30 +68,12 @@ class _ThemesSettingsState extends State<ThemesSettings> {
           spacing: 10,
           runSpacing: 10,
           children: [
-            _ThemeButton(
-              seedColor: Colors.red,
-              onPressed: () => _settingsBox.put("color", Colors.red),
-            ),
-            _ThemeButton(
-              seedColor: Colors.green,
-              onPressed: () => _settingsBox.put("color", Colors.green),
-            ),
-            _ThemeButton(
-              seedColor: Colors.blue,
-              onPressed: () => _settingsBox.put("color", Colors.blue),
-            ),
-            _ThemeButton(
-              seedColor: Colors.purple,
-              onPressed: () => _settingsBox.put("color", Colors.purple),
-            ),
-            _ThemeButton(
-              seedColor: Colors.orange,
-              onPressed: () => _settingsBox.put("color", Colors.orange),
-            ),
-            _ThemeButton(
-              seedColor: Colors.grey,
-              onPressed: () => _settingsBox.put("color", Colors.grey),
-            ),
+            for (final entry in kCyberpunkColors.entries)
+              _ThemeButton(
+                name: entry.key,
+                seedColor: entry.value,
+                onPressed: () => _settingsBox.put("color", entry.value),
+              ),
           ],
         ),
       ],
@@ -105,17 +98,22 @@ class _ThemesSettingsState extends State<ThemesSettings> {
 }
 
 class _ThemeButton extends StatelessWidget {
+  final String name;
   final Color seedColor;
   final Function()? onPressed;
 
-  const _ThemeButton({required this.seedColor, required this.onPressed});
+  const _ThemeButton({
+    required this.name,
+    required this.seedColor,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
       brightness: Theme.of(context).brightness,
-      dynamicSchemeVariant: DynamicSchemeVariant.neutral,
+      dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
     );
 
     return ElevatedButton(
@@ -131,7 +129,7 @@ class _ThemeButton extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _colorNames[seedColor] ?? "Custom",
+            name,
             style: TextStyle(color: colorScheme.primary),
           ),
           Container(
@@ -156,13 +154,4 @@ class _ThemeButton extends StatelessWidget {
       ),
     );
   }
-
-  static final _colorNames = {
-    Colors.red: "Red",
-    Colors.blue: "Blue",
-    Colors.purple: "Purple",
-    Colors.orange: "Orange",
-    Colors.green: "Green",
-    Colors.grey: "Grey",
-  };
 }

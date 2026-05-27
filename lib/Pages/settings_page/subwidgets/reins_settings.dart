@@ -5,6 +5,7 @@ import 'package:in_app_review/in_app_review.dart';
 import 'dart:io' show Platform;
 
 import 'package:reins/Widgets/flexible_text.dart';
+import 'package:reins/Widgets/glitch_text.dart';
 
 class ReinsSettings extends StatelessWidget {
   const ReinsSettings({super.key});
@@ -14,7 +15,7 @@ class ReinsSettings extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        GlitchText(
           'Xer0',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,

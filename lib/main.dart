@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:reins/Constants/constants.dart';
 import 'package:reins/Models/settings_route_arguments.dart';
@@ -83,16 +84,20 @@ class ReinsApp extends StatelessWidget {
         keys: ['color', 'brightness'],
       ),
       builder: (context, box, _) {
+        final baseTheme = ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            brightness: _brightness ?? Brightness.dark,
+            dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
+            seedColor: box.get('color', defaultValue: const Color(0xFF22D3EE)),
+          ),
+          appBarTheme: const AppBarTheme(centerTitle: true),
+          useMaterial3: true,
+        );
+
         return MaterialApp(
           title: AppConstants.appName,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              brightness: _brightness ?? MediaQuery.platformBrightnessOf(context),
-              dynamicSchemeVariant: DynamicSchemeVariant.neutral,
-              seedColor: box.get('color', defaultValue: Colors.grey),
-            ),
-            appBarTheme: const AppBarTheme(centerTitle: true),
-            useMaterial3: true,
+          theme: baseTheme.copyWith(
+            textTheme: GoogleFonts.orbitronTextTheme(baseTheme.textTheme),
           ),
           builder: (context, child) => ResponsiveBreakpoints.builder(
             breakpoints: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:reins/Constants/constants.dart';
+import 'package:reins/Widgets/glitch_text.dart';
 import 'package:reins/Widgets/chat_configure_bottom_sheet.dart';
 import 'package:reins/Widgets/model_selection_bottom_sheet.dart';
 import 'package:provider/provider.dart';
@@ -17,7 +18,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Column(
         children: [
-          Text(
+          GlitchText(
             AppConstants.appName,
             style: GoogleFonts.orbitron(
               fontWeight: FontWeight.w700,

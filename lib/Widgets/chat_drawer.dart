@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:reins/Constants/constants.dart';
+import 'package:reins/Widgets/glitch_text.dart';
 import 'package:reins/Providers/chat_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
@@ -56,7 +57,7 @@ class ChatNavigationDrawer extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
-              child: Text(
+              child: GlitchText(
                 AppConstants.appName,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
