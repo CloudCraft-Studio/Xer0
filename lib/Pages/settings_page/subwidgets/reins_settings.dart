@@ -15,14 +15,14 @@ class ReinsSettings extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Zero1',
+          'Xer0',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
         ),
         ListTile(
           leading: Icon(Icons.rate_review),
-          title: Text('Review Zero1'),
+          title: Text('Review Xer0'),
           subtitle: Text('Share your feedback'),
           onTap: () async {
             if (await InAppReview.instance.isAvailable() && Platform.isIOS) {
@@ -35,8 +35,8 @@ class ReinsSettings extends StatelessWidget {
         Builder(
           builder: (builderContext) => ListTile(
             leading: Icon(Icons.share),
-            title: Text('Share Zero1'),
-            subtitle: Text('Share Zero1 with your friends'),
+            title: Text('Share Xer0'),
+            subtitle: Text('Share Xer0 with your friends'),
             onTap: () {
               _openShareSheet(builderContext);
             },
@@ -82,7 +82,7 @@ class ReinsSettings extends StatelessWidget {
           children: [
             Icon(Icons.favorite, color: Colors.red, size: 16),
             FlexibleText(
-              "Thanks for using Zero1!",
+              "Thanks for using Xer0!",
               textAlign: TextAlign.center,
             ),
           ],
@@ -106,7 +106,7 @@ class ReinsSettings extends StatelessWidget {
     if (box != null) {
       SharePlus.instance.share(
         ShareParams(
-          text: 'Check out Zero1!',
+          text: 'Check out Xer0!',
           sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
         ),
       );

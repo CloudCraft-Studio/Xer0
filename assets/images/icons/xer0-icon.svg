@@ -3,7 +3,7 @@
      xmlns="http://www.w3.org/2000/svg">
   <!-- getpod palette: surface-950 background -->
   <rect width="1024" height="1024" fill="#0a0e1a"/>
-  <!-- robot in primary-400 cyan, scaled and centered with padding -->
+  <!-- robot in primary-400 cyan, X eyes, scaled and centered with padding -->
   <g transform="translate(153.6,153.6) scale(1.4)" fill="#22d3ee">
     <!-- antenna -->
     <circle cx="256" cy="60" r="22"/>
@@ -11,7 +11,7 @@
     <!-- side ears / bolts -->
     <rect x="64" y="228" width="28" height="72" rx="10"/>
     <rect x="420" y="228" width="28" height="72" rx="10"/>
-    <!-- head with eyes + mouth grille punched out (evenodd) -->
+    <!-- head with X eyes + mouth grille punched out (evenodd) -->
     <path fill-rule="evenodd" d="
       M 152 124
       H 360
@@ -23,8 +23,8 @@
       V 176
       A 52 52 0 0 1 152 124
       Z
-      M 168 212 H 232 V 280 H 168 Z
-      M 280 212 H 344 V 280 H 280 Z
+      M 216.26 219.84 L 226.16 229.74 L 209.90 246.00 L 226.16 262.26 L 216.26 272.16 L 200.00 255.90 L 183.74 272.16 L 173.84 262.26 L 190.10 246.00 L 173.84 229.74 L 183.74 219.84 L 200.00 236.10 Z
+      M 328.26 219.84 L 338.16 229.74 L 321.90 246.00 L 338.16 262.26 L 328.26 272.16 L 312.00 255.90 L 295.74 272.16 L 285.84 262.26 L 302.10 246.00 L 285.84 229.74 L 295.74 219.84 L 312.00 236.10 Z
       M 180 336 H 196 V 372 H 180 Z
       M 212 336 H 228 V 372 H 212 Z
       M 244 336 H 268 V 372 H 244 Z

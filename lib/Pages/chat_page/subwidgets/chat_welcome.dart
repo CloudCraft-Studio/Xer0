@@ -67,7 +67,7 @@ class _ChatWelcomeText extends StatelessWidget {
     return AnimatedTextKit(
       animatedTexts: [
         TyperAnimatedText(
-          'Welcome to Zero1!',
+          'Welcome to Xer0!',
           speed: const Duration(milliseconds: 100),
         ),
         TyperAnimatedText(
