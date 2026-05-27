@@ -13,7 +13,13 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings', style: GoogleFonts.pacifico()),
+        title: Text(
+          'Settings',
+          style: GoogleFonts.orbitron(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2.0,
+          ),
+        ),
       ),
       body: SafeArea(
         child: _SettingsPageContent(arguments: arguments),

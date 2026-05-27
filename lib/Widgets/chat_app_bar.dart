@@ -17,7 +17,13 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Column(
         children: [
-          Text(AppConstants.appName, style: GoogleFonts.pacifico()),
+          Text(
+            AppConstants.appName,
+            style: GoogleFonts.orbitron(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2.0,
+            ),
+          ),
           if (chatProvider.currentChat != null)
             InkWell(
               onTap: () {
