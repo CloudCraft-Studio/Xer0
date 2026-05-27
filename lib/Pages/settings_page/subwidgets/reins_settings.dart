@@ -15,14 +15,14 @@ class ReinsSettings extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Reins',
+          'Zero1',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
         ),
         ListTile(
           leading: Icon(Icons.rate_review),
-          title: Text('Review Reins'),
+          title: Text('Review Zero1'),
           subtitle: Text('Share your feedback'),
           onTap: () async {
             if (await InAppReview.instance.isAvailable() && Platform.isIOS) {
@@ -35,8 +35,8 @@ class ReinsSettings extends StatelessWidget {
         Builder(
           builder: (builderContext) => ListTile(
             leading: Icon(Icons.share),
-            title: Text('Share Reins'),
-            subtitle: Text('Share Reins with your friends'),
+            title: Text('Share Zero1'),
+            subtitle: Text('Share Zero1 with your friends'),
             onTap: () {
               _openShareSheet(builderContext);
             },
@@ -82,10 +82,20 @@ class ReinsSettings extends StatelessWidget {
           children: [
             Icon(Icons.favorite, color: Colors.red, size: 16),
             FlexibleText(
-              "Thanks for using Reins!",
+              "Thanks for using Zero1!",
               textAlign: TextAlign.center,
             ),
           ],
+        ),
+        const SizedBox(height: 4),
+        Center(
+          child: Text(
+            'Based on Reins by İbrahim Çetin · GPL-3.0',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
         ),
       ],
     );
@@ -96,7 +106,7 @@ class ReinsSettings extends StatelessWidget {
     if (box != null) {
       SharePlus.instance.share(
         ShareParams(
-          text: 'Check out Reins: https://reins.ibrahimcetin.dev',
+          text: 'Check out Zero1!',
           sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
         ),
       );
