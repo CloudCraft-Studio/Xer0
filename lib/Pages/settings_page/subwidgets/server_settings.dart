@@ -24,6 +24,7 @@ class _ServerSettingsState extends State<ServerSettings> {
   final _settingsBox = Hive.box('settings');
 
   final _serverAddressController = TextEditingController();
+  final _apiTokenController = TextEditingController();
 
   OllamaRequestState _requestState = OllamaRequestState.uninitialized;
   get _isLoading => _requestState == OllamaRequestState.loading;
@@ -38,6 +39,11 @@ class _ServerSettingsState extends State<ServerSettings> {
   }
 
   _initialize() {
+    final apiToken = _settingsBox.get('apiToken');
+    if (apiToken != null) {
+      _apiTokenController.text = apiToken;
+    }
+
     final serverAddress = _settingsBox.get('serverAddress');
 
     if (serverAddress != null) {
@@ -49,6 +55,7 @@ class _ServerSettingsState extends State<ServerSettings> {
   @override
   void dispose() {
     _serverAddressController.dispose();
+    _apiTokenController.dispose();
 
     super.dispose();
   }
@@ -83,6 +90,27 @@ class _ServerSettingsState extends State<ServerSettings> {
               icon: Icon(Icons.info_outline),
               onPressed: () => _showOllamaInfoBottomSheet(context),
             ),
+          ),
+          onTapOutside: (PointerDownEvent event) {
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _apiTokenController,
+          obscureText: true,
+          enableSuggestions: false,
+          autocorrect: false,
+          onChanged: (_) {
+            setState(() {
+              _serverAddressErrorText = null;
+              _requestState = OllamaRequestState.uninitialized;
+            });
+          },
+          decoration: const InputDecoration(
+            labelText: 'API Key (optional)',
+            helperText: 'Required for Ollama Cloud or authenticated servers.',
+            border: OutlineInputBorder(),
           ),
           onTapOutside: (PointerDownEvent event) {
             FocusManager.instance.primaryFocus?.unfocus();
@@ -138,7 +166,10 @@ class _ServerSettingsState extends State<ServerSettings> {
       // Validate the server address.
       final newAddress = _validateServerAddress(_serverAddressController.text);
       // Establish a connection to the server.
-      final result = await _establishServerConnection(Uri.parse(newAddress));
+      final result = await _establishServerConnection(
+        Uri.parse(newAddress),
+        apiToken: _apiTokenController.text,
+      );
 
       if (!mounted) return;
 
@@ -160,9 +191,16 @@ class _ServerSettingsState extends State<ServerSettings> {
     final state = result.$1;
     final newAddress = result.$2.toString();
 
+    if (state != OllamaRequestState.success) return;
+
     final currentAddress = _settingsBox.get('serverAddress');
-    if (state == OllamaRequestState.success && newAddress != currentAddress) {
+    if (newAddress != currentAddress) {
       _settingsBox.put('serverAddress', newAddress);
+    }
+
+    final newToken = _apiTokenController.text;
+    if (newToken != (_settingsBox.get('apiToken') ?? '')) {
+      _settingsBox.put('apiToken', newToken);
     }
   }
 
@@ -170,11 +208,18 @@ class _ServerSettingsState extends State<ServerSettings> {
   ///
   /// Returns a tuple of the request state and the given server address.
   static Future<(OllamaRequestState, Uri)> _establishServerConnection(
-    Uri serverAddress,
-  ) async {
+    Uri serverAddress, {
+    String? apiToken,
+  }) async {
     try {
-      final response =
-          await http.get(serverAddress).timeout(const Duration(seconds: 2));
+      final headers = <String, String>{};
+      if (apiToken != null && apiToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $apiToken';
+      }
+
+      final response = await http
+          .get(serverAddress, headers: headers)
+          .timeout(const Duration(seconds: 2));
 
       if (response.statusCode == 200) {
         return (OllamaRequestState.success, serverAddress);

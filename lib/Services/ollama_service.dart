@@ -22,11 +22,27 @@ class OllamaService {
   String get baseUrl => _baseUrl;
   set baseUrl(String? value) => _baseUrl = value ?? "http://localhost:11434";
 
+  /// The API token sent as a Bearer Authorization header.
+  ///
+  /// When null or empty no Authorization header is sent, preserving the
+  /// behavior for local, unauthenticated Ollama servers. Set it to connect
+  /// to authenticated endpoints such as Ollama Cloud.
+  String? _apiToken;
+  String? get apiToken => _apiToken;
+  set apiToken(String? value) =>
+      _apiToken = (value != null && value.isNotEmpty) ? value : null;
+
   /// The headers to include in all network requests.
-  final headers = {'Content-Type': 'application/json'};
+  Map<String, String> get headers {
+    final h = {'Content-Type': 'application/json'};
+    if (_apiToken != null) h['Authorization'] = 'Bearer $_apiToken';
+    return h;
+  }
 
   /// Creates a new instance of the Ollama service.
-  OllamaService({String? baseUrl}) : _baseUrl = baseUrl ?? "http://localhost:11434";
+  OllamaService({String? baseUrl, String? apiToken})
+      : _baseUrl = baseUrl ?? "http://localhost:11434",
+        _apiToken = (apiToken != null && apiToken.isNotEmpty) ? apiToken : null;
 
   /// Constructs a URL by resolving the provided path against the base URL.
   Uri constructUrl(String path) {
