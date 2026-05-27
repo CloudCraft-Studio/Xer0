@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:reins/Constants/constants.dart';
 import 'package:reins/Utils/material_color_adapter.dart';
@@ -48,8 +49,18 @@ class _ThemesSettingsState extends State<ThemesSettings> {
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: CircleAvatar(
-                  backgroundImage: AssetImage(AppConstants.appIconPng),
+                  backgroundColor: Theme.of(context).colorScheme.surface,
                   radius: MediaQuery.of(context).textScaler.scale(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6.0),
+                    child: SvgPicture.asset(
+                      AppConstants.appIconSvg,
+                      colorFilter: ColorFilter.mode(
+                        Theme.of(context).colorScheme.onSurface,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               Expanded(child: Text("Here is your current theme")),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Renders [text] with a periodic cyberpunk "glitch" burst: two offset
 /// cyan/magenta copies jitter behind the main text for a few frames, then settle.
@@ -63,7 +64,9 @@ class _GlitchTextState extends State<GlitchText> {
 
   @override
   Widget build(BuildContext context) {
-    final base = DefaultTextStyle.of(context).style.merge(widget.style);
+    // The "Xer0" wordmark always uses Orbitron, regardless of the global font.
+    final resolved = DefaultTextStyle.of(context).style.merge(widget.style);
+    final base = GoogleFonts.orbitron(textStyle: resolved);
 
     Widget layer(Color color, Offset offset) => Transform.translate(
           offset: offset,

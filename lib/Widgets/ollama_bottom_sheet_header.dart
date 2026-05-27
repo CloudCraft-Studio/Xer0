@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:reins/Constants/constants.dart';
 import 'package:reins/Widgets/flexible_text.dart';
 
@@ -13,9 +14,13 @@ class OllamaBottomSheetHeader extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8.0),
-            child: Image.asset(AppConstants.appIconPng, height: 48),
+          child: SvgPicture.asset(
+            AppConstants.appIconSvg,
+            height: 48,
+            colorFilter: ColorFilter.mode(
+              Theme.of(context).colorScheme.onSurface,
+              BlendMode.srcIn,
+            ),
           ),
         ),
         FlexibleText(

@@ -97,7 +97,7 @@ class ReinsApp extends StatelessWidget {
         return MaterialApp(
           title: AppConstants.appName,
           theme: baseTheme.copyWith(
-            textTheme: GoogleFonts.orbitronTextTheme(baseTheme.textTheme),
+            textTheme: GoogleFonts.chakraPetchTextTheme(baseTheme.textTheme),
           ),
           builder: (context, child) => ResponsiveBreakpoints.builder(
             breakpoints: [
