@@ -143,6 +143,7 @@ class OllamaService {
   Future<OllamaMessage> chat(
     List<OllamaMessage> messages, {
     required OllamaChat chat,
+    List<Map<String, dynamic>>? tools,
   }) async {
     final url = constructUrl("/api/chat");
 
@@ -154,6 +155,7 @@ class OllamaService {
         "messages": await _prepareMessagesWithSystemPrompt(messages, chat.systemPrompt),
         "options": chat.options.toMap(),
         "stream": false,
+        if (tools != null && tools.isNotEmpty) "tools": tools,
       }),
     );
 
@@ -172,6 +174,7 @@ class OllamaService {
   Stream<OllamaMessage> chatStream(
     List<OllamaMessage> messages, {
     required OllamaChat chat,
+    List<Map<String, dynamic>>? tools,
   }) async* {
     final url = constructUrl('/api/chat');
 
@@ -182,6 +185,7 @@ class OllamaService {
       "messages": await _prepareMessagesWithSystemPrompt(messages, chat.systemPrompt),
       "options": chat.options.toMap(),
       "stream": true,
+      if (tools != null && tools.isNotEmpty) "tools": tools,
     });
 
     http.StreamedResponse response = await request.send();

@@ -54,10 +54,7 @@ class _ChatPageState extends State<ChatPage> {
             key: ValueKey(_viewModel.currentChat?.id),
             controller: _viewModel.textFieldController,
             onEditingComplete: _sendMessage,
-            prefixIcon: IconButton(
-              icon: Icon(Icons.add),
-              onPressed: _handleAttachmentButton,
-            ),
+            prefixIcon: _buildTextFieldPrefixIcon(),
             suffixIcon: _buildTextFieldSuffixIcon(),
           ),
         ),
@@ -95,6 +92,7 @@ class _ChatPageState extends State<ChatPage> {
         key: PageStorageKey<String>(_viewModel.currentChat?.id ?? 'empty'),
         messages: _viewModel.messages,
         isAwaitingReply: _viewModel.isThinking,
+        activityLabel: _viewModel.currentToolActivity,
         error: _viewModel.currentError != null
             ? ChatError(
                 message: _viewModel.currentError!.message,
@@ -136,6 +134,29 @@ class _ChatPageState extends State<ChatPage> {
     } else {
       return const SizedBox();
     }
+  }
+
+  Widget _buildTextFieldPrefixIcon() {
+    final webSearchOn = _viewModel.isWebSearchEnabled;
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.add),
+          onPressed: _handleAttachmentButton,
+          tooltip: 'Attach image',
+        ),
+        IconButton(
+          icon: Icon(
+            Icons.public,
+            color: webSearchOn ? scheme.primary : scheme.onSurfaceVariant,
+          ),
+          onPressed: () => _viewModel.toggleWebSearch(),
+          tooltip: webSearchOn ? 'Disable web search' : 'Enable web search',
+        ),
+      ],
+    );
   }
 
   Widget? _buildTextFieldSuffixIcon() {

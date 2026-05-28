@@ -24,6 +24,17 @@ class OllamaMessage {
   /// The model used to generate the message.
   String? model;
 
+  /// Tool calls requested by the assistant.
+  ///
+  /// Each entry follows Ollama's shape: `{"function": {"name": str, "arguments": Map}}`.
+  /// Non-null only on assistant messages emitted while web search / tools are enabled.
+  List<Map<String, dynamic>>? toolCalls;
+
+  /// The name of the tool whose result this message carries.
+  ///
+  /// Only set when [role] is [OllamaMessageRole.tool].
+  String? toolName;
+
   // Metadata fields
   bool? done;
   String? doneReason;
@@ -51,32 +62,45 @@ class OllamaMessage {
     this.promptEvalDuration,
     this.evalCount,
     this.evalDuration,
+    this.toolCalls,
+    this.toolName,
   })  : id = id ?? Uuid().v4(),
         createdAt = createdAt ?? DateTime.now();
 
-  factory OllamaMessage.fromJson(Map<String, dynamic> json) => OllamaMessage(
-        json["message"] != null
-            ? json["message"]["content"] // For chat messages
-            : json["response"], // For generated messages
-        role: json["message"] != null
-            ? OllamaMessageRole.fromString(json["message"]["role"])
-            : OllamaMessageRole.assistant, // For generated messages (default)
-        images: null, // TODO: Implement image support
-        createdAt: DateTime.parse(json["created_at"]),
-        model: json["model"],
-        // Metadata fields
-        done: json["done"],
-        doneReason: json["done_reason"],
-        context: json["context"] != null
-            ? List<int>.from(json["context"].map((x) => x))
-            : null,
-        totalDuration: json["total_duration"],
-        loadDuration: json["load_duration"],
-        promptEvalCount: json["prompt_eval_count"],
-        promptEvalDuration: json["prompt_eval_duration"],
-        evalCount: json["eval_count"],
-        evalDuration: json["eval_duration"],
-      );
+  factory OllamaMessage.fromJson(Map<String, dynamic> json) {
+    final messageJson = json["message"] as Map<String, dynamic>?;
+    final rawToolCalls = messageJson?["tool_calls"];
+    final toolCalls = rawToolCalls is List
+        ? rawToolCalls
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList()
+        : null;
+    return OllamaMessage(
+      messageJson != null
+          ? (messageJson["content"] ?? '') // For chat messages
+          : json["response"], // For generated messages
+      role: messageJson != null
+          ? OllamaMessageRole.fromString(messageJson["role"])
+          : OllamaMessageRole.assistant, // For generated messages (default)
+      images: null, // TODO: Implement image support
+      createdAt: DateTime.parse(json["created_at"]),
+      model: json["model"],
+      // Metadata fields
+      done: json["done"],
+      doneReason: json["done_reason"],
+      context: json["context"] != null
+          ? List<int>.from(json["context"].map((x) => x))
+          : null,
+      totalDuration: json["total_duration"],
+      loadDuration: json["load_duration"],
+      promptEvalCount: json["prompt_eval_count"],
+      promptEvalDuration: json["prompt_eval_duration"],
+      evalCount: json["eval_count"],
+      evalDuration: json["eval_duration"],
+      toolCalls: (toolCalls != null && toolCalls.isNotEmpty) ? toolCalls : null,
+    );
+  }
 
   factory OllamaMessage.fromDatabase(Map<String, dynamic> map) {
     return OllamaMessage(
@@ -109,11 +133,26 @@ class OllamaMessage {
         "eval_duration": evalDuration,
       };
 
-  Future<Map<String, dynamic>> toChatJson() async => {
-        "role": role.name,
+  Future<Map<String, dynamic>> toChatJson() async {
+    if (role == OllamaMessageRole.tool) {
+      return {
+        "role": "tool",
+        if (toolName != null) "tool_name": toolName,
         "content": content,
-        "images": await _base64EncodeImages(),
       };
+    }
+    // Preserve tool_calls verbatim — some providers (e.g. Gemini via Ollama
+    // Cloud) require echoing provider-specific fields like `thought_signature`
+    // alongside the function call. Drop only nulls Ollama rejects (`images`).
+    final encodedImages = await _base64EncodeImages();
+    return {
+      "role": role.name,
+      "content": content,
+      if (encodedImages != null && encodedImages.isNotEmpty)
+        "images": encodedImages,
+      if (toolCalls != null && toolCalls!.isNotEmpty) "tool_calls": toolCalls,
+    };
+  }
 
   Map<String, dynamic> toDatabaseMap() => {
         'message_id': id,
@@ -178,7 +217,8 @@ class OllamaMessage {
 enum OllamaMessageRole {
   user,
   assistant,
-  system;
+  system,
+  tool;
 
   factory OllamaMessageRole.fromString(String role) {
     switch (role) {
@@ -188,6 +228,8 @@ enum OllamaMessageRole {
         return OllamaMessageRole.assistant;
       case 'system':
         return OllamaMessageRole.system;
+      case 'tool':
+        return OllamaMessageRole.tool;
       default:
         throw ArgumentError('Unknown role: $role');
     }

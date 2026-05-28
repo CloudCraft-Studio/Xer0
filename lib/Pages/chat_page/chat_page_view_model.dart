@@ -119,6 +119,17 @@ class ChatPageViewModel extends ChangeNotifier {
   /// The current chat error, if any
   OllamaException? get currentError => _chatProvider.currentChatError;
 
+  /// Whether the web search tool is enabled for the next turn.
+  bool get isWebSearchEnabled => _chatProvider.isWebSearchEnabled;
+
+  /// Human-readable description of the tool currently being executed.
+  String? get currentToolActivity => _chatProvider.currentToolActivity;
+
+  /// Toggles the web search tool on/off.
+  Future<void> toggleWebSearch() async {
+    await _chatProvider.setWebSearchEnabled(!_chatProvider.isWebSearchEnabled);
+  }
+
   // ============================================================
   // ChatProvider Actions (Delegated)
   // ============================================================

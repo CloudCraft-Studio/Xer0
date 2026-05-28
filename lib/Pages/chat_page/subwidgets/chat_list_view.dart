@@ -11,6 +11,7 @@ import 'package:reins/Utils/retained_position_scroll_physics.dart';
 class ChatListView extends StatefulWidget {
   final List<OllamaMessage> messages;
   final bool isAwaitingReply;
+  final String? activityLabel;
   final Widget? error;
   final double? bottomPadding;
 
@@ -18,6 +19,7 @@ class ChatListView extends StatefulWidget {
     super.key,
     required this.messages,
     required this.isAwaitingReply,
+    this.activityLabel,
     this.error,
     this.bottomPadding,
   });
@@ -90,17 +92,17 @@ class _ChatListViewState extends State<ChatListView> {
               SliverToBoxAdapter(
                 child: widget.error,
               ),
-            if (widget.isAwaitingReply)
+            if (widget.isAwaitingReply || widget.activityLabel != null)
               SliverToBoxAdapter(
                 child: Shimmer.fromColors(
                   // TODO: Play with the colors to make it look better
                   baseColor: Theme.of(context).colorScheme.onPrimary,
                   highlightColor: Theme.of(context).colorScheme.onSurface,
                   period: const Duration(milliseconds: 2500),
-                  child: const ListTile(
+                  child: ListTile(
                     title: Padding(
-                      padding: EdgeInsets.all(10.0),
-                      child: Text("Thinking"),
+                      padding: const EdgeInsets.all(10.0),
+                      child: Text(widget.activityLabel ?? "Thinking"),
                     ),
                   ),
                 ),

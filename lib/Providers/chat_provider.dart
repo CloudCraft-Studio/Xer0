@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,10 +13,18 @@ import 'package:reins/Models/ollama_message.dart';
 import 'package:reins/Models/ollama_model.dart';
 import 'package:reins/Services/database_service.dart';
 import 'package:reins/Services/ollama_service.dart';
+import 'package:reins/Services/web_search_service.dart';
+
+/// Maximum number of tool-call rounds per user turn.
+///
+/// Caps runaway loops where a model keeps calling tools without producing a
+/// final answer. Each round = (assistant tool_call → execute → tool result).
+const int _maxToolRounds = 5;
 
 class ChatProvider extends ChangeNotifier {
   final OllamaService _ollamaService;
   final DatabaseService _databaseService;
+  final WebSearchService _webSearchService;
 
   List<OllamaMessage> _messages = [];
   List<OllamaMessage> get messages => _messages;
@@ -48,6 +57,14 @@ class ChatProvider extends ChangeNotifier {
   /// This is used to display error messages in the chat view.
   OllamaException? get currentChatError => _chatErrors[currentChat?.id];
 
+  /// Human-readable description of the tool currently being invoked.
+  ///
+  /// Non-null while the agentic loop is executing a tool (e.g. "Using tool
+  /// web_search…"). The UI shows this in place of the "Thinking" shimmer so
+  /// users see why the assistant is silent.
+  String? _currentToolActivity;
+  String? get currentToolActivity => _currentToolActivity;
+
   /// The current chat configuration.
   ChatConfigureArguments get currentChatConfiguration {
     if (currentChat == null) {
@@ -66,9 +83,23 @@ class ChatProvider extends ChangeNotifier {
   ChatProvider({
     required OllamaService ollamaService,
     required DatabaseService databaseService,
+    required WebSearchService webSearchService,
   })  : _ollamaService = ollamaService,
-        _databaseService = databaseService {
+        _databaseService = databaseService,
+        _webSearchService = webSearchService {
     _initialize();
+  }
+
+  /// Whether the agentic web search loop is enabled for the next turn.
+  ///
+  /// Persisted under Hive `settings['webSearchEnabled']`. Globe toggle in the
+  /// chat input drives this.
+  bool get isWebSearchEnabled =>
+      Hive.box('settings').get('webSearchEnabled', defaultValue: true) as bool;
+
+  Future<void> setWebSearchEnabled(bool value) async {
+    await Hive.box('settings').put('webSearchEnabled', value);
+    notifyListeners();
   }
 
   Future<void> _initialize() async {
@@ -238,11 +269,90 @@ class ChatProvider extends ChangeNotifier {
     // Notify the listeners to show the thinking indicator
     notifyListeners();
 
-    // Stream the Ollama message
-    OllamaMessage? ollamaMessage;
+    final tools = isWebSearchEnabled ? _buildWebSearchTools() : null;
+    // Snapshot the visible conversation at the start of the turn. Tool-round
+    // messages (assistant tool_calls + tool results) are appended only to this
+    // local list so they reach the API but stay out of the visible chat.
+    final apiMessages = List<OllamaMessage>.from(_messages);
+    if (tools != null) {
+      // Nudge the model to call web_search proactively for time-sensitive
+      // queries. Without this, models tend to answer from training data and
+      // only search when the user explicitly asks.
+      final today = DateTime.now().toUtc().toIso8601String().split('T').first;
+      apiMessages.insert(
+        0,
+        OllamaMessage(
+          'Today is $today. Your training data is older than today and is '
+          'therefore OUTDATED for anything that changes over time. You have '
+          'a web_search tool available.\n\n'
+          'HARD RULES:\n'
+          '1. For ANY question about the "latest", "current", "newest", or '
+          '"most recent" version of a product, person\'s role, price, '
+          'score, statistic, event, release, or news item — you MUST call '
+          'web_search BEFORE answering. Do not answer from memory.\n'
+          '2. After web_search returns results, BASE YOUR ANSWER ON THE '
+          'SEARCH RESULTS. Do not contradict them with training-data '
+          'knowledge. If the results disagree with what you remember, the '
+          'results win.\n'
+          '3. Cite source URLs from the search results in your final '
+          'answer.',
+          role: OllamaMessageRole.system,
+        ),
+      );
+    }
+    OllamaMessage? finalMessage;
 
     try {
-      ollamaMessage = await _streamOllamaMessage(associatedChat);
+      for (var round = 0; round <= _maxToolRounds; round++) {
+        if (round > 0) {
+          // Reset the streaming slot so a new streaming message is created
+          // for this round and the "thinking" indicator reappears between
+          // tool execution and the model's next response.
+          _activeChatStreams[associatedChat.id] = null;
+          notifyListeners();
+        }
+
+        final message = await _streamOllamaMessage(
+          associatedChat,
+          apiMessages: apiMessages,
+          tools: tools,
+        );
+
+        // The user cancelled mid-stream.
+        if (!_activeChatStreams.containsKey(associatedChat.id)) {
+          finalMessage = message;
+          break;
+        }
+
+        if (message == null) break;
+
+        final toolCalls = message.toolCalls;
+        if (toolCalls == null || toolCalls.isEmpty || round == _maxToolRounds) {
+          finalMessage = message;
+          break;
+        }
+
+        // Tool round: append the assistant's tool_call turn to the API history
+        // (the model needs to see its own tool calls on the next pass) and run
+        // each tool, appending results as `tool` role messages — again only to
+        // the API list, never to _messages.
+        apiMessages.add(message);
+        for (final call in toolCalls) {
+          final fn = call['function'] as Map?;
+          if (fn == null) continue;
+          final name = (fn['name'] as String?) ?? '';
+          final args = _coerceArguments(fn['arguments']);
+          _currentToolActivity = _describeToolActivity(name, args);
+          notifyListeners();
+          final result = await _executeTool(name, args);
+          apiMessages.add(OllamaMessage(
+            result,
+            role: OllamaMessageRole.tool,
+            toolName: name,
+          ));
+        }
+        _currentToolActivity = null;
+      }
     } on OllamaException catch (error) {
       _chatErrors[associatedChat.id] = error;
     } on SocketException catch (_) {
@@ -254,50 +364,177 @@ class ChatProvider extends ChangeNotifier {
     } finally {
       // Remove the chat from the active chat streams
       _activeChatStreams.remove(associatedChat.id);
+      _currentToolActivity = null;
       notifyListeners();
     }
 
-    // Save the Ollama message to the database
-    if (ollamaMessage != null) {
-      await _databaseService.addMessage(ollamaMessage, chat: associatedChat);
+    // Persist only the final assistant turn (with text content). Intermediate
+    // tool_call assistant turns and tool-role messages stay in memory for the
+    // current view but are dropped on chat reload — the DB schema only allows
+    // user/assistant/system roles.
+    if (finalMessage != null &&
+        finalMessage.role == OllamaMessageRole.assistant &&
+        finalMessage.content.isNotEmpty) {
+      finalMessage.toolCalls = null;
+      await _databaseService.addMessage(finalMessage, chat: associatedChat);
     }
   }
 
-  Future<OllamaMessage?> _streamOllamaMessage(OllamaChat associatedChat) async {
-    if (_messages.isEmpty) return null;
+  String _describeToolActivity(String name, Map<String, dynamic> args) {
+    if (name == 'web_search') {
+      final q = (args['query'] as String?)?.trim();
+      if (q != null && q.isNotEmpty) return 'Searching the web: "$q"';
+      return 'Searching the web…';
+    }
+    if (name == 'web_fetch') {
+      final url = (args['url'] as String?)?.trim();
+      if (url != null && url.isNotEmpty) return 'Fetching $url';
+      return 'Fetching a page…';
+    }
+    return 'Using tool $name…';
+  }
 
-    final stream = _ollamaService.chatStream(_messages, chat: associatedChat);
+  Map<String, dynamic> _coerceArguments(dynamic raw) {
+    if (raw is Map) return raw.cast<String, dynamic>();
+    if (raw is String && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) return decoded.cast<String, dynamic>();
+      } catch (_) {}
+    }
+    return const {};
+  }
+
+  /// Definitions of the web tools exposed to the model when web search is on.
+  List<Map<String, dynamic>> _buildWebSearchTools() => [
+        {
+          "type": "function",
+          "function": {
+            "name": "web_search",
+            "description":
+                "Search the web for up-to-date information. Use this whenever the user asks about recent events or facts you are not confident about.",
+            "parameters": {
+              "type": "object",
+              "required": ["query"],
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "The search query.",
+                },
+                "max_results": {
+                  "type": "integer",
+                  "description": "Number of results to return (max 10).",
+                },
+              },
+            },
+          },
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "web_fetch",
+            "description":
+                "Fetch the parsed contents of a single URL when you need more detail than a search snippet provides.",
+            "parameters": {
+              "type": "object",
+              "required": ["url"],
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "description": "The URL to fetch.",
+                },
+              },
+            },
+          },
+        },
+      ];
+
+  Future<String> _executeTool(
+    String name,
+    Map<String, dynamic> args,
+  ) async {
+    try {
+      if (name == 'web_search') {
+        final query = (args['query'] as String?)?.trim() ?? '';
+        if (query.isEmpty) return 'Error: missing query.';
+        final maxResults = (args['max_results'] as num?)?.toInt() ?? 5;
+        final results = await _webSearchService.search(query, maxResults: maxResults);
+        if (results.isEmpty) return 'No results found for "$query".';
+        return jsonEncode({
+          'results': results
+              .map((r) => {
+                    'title': r.title,
+                    'url': r.url,
+                    'content': r.content,
+                  })
+              .toList(),
+        });
+      }
+      if (name == 'web_fetch') {
+        final url = (args['url'] as String?)?.trim() ?? '';
+        if (url.isEmpty) return 'Error: missing url.';
+        final fetched = await _webSearchService.fetch(url);
+        return jsonEncode({
+          'title': fetched.title,
+          'content': fetched.content,
+          'links': fetched.links,
+        });
+      }
+      return 'Error: unknown tool "$name".';
+    } on OllamaException catch (e) {
+      return 'Error: ${e.message}';
+    } catch (_) {
+      return 'Error: tool execution failed.';
+    }
+  }
+
+  Future<OllamaMessage?> _streamOllamaMessage(
+    OllamaChat associatedChat, {
+    required List<OllamaMessage> apiMessages,
+    List<Map<String, dynamic>>? tools,
+  }) async {
+    if (apiMessages.isEmpty) return null;
+
+    final stream = _ollamaService.chatStream(
+      apiMessages,
+      chat: associatedChat,
+      tools: tools,
+    );
 
     OllamaMessage? streamingMessage;
     OllamaMessage? receivedMessage;
+    List<Map<String, dynamic>>? latestToolCalls;
 
     await for (receivedMessage in stream) {
       // If the chat id is not in the active chat streams, it means the stream
       // is cancelled by the user. So, we need to break the loop.
       if (_activeChatStreams.containsKey(associatedChat.id) == false) {
         streamingMessage?.createdAt = DateTime.now();
+        streamingMessage?.toolCalls = latestToolCalls;
         return streamingMessage;
       }
 
-      // Ignore empty initial messages, preventing disruption of the thinking indicator
-      if (receivedMessage.content.isEmpty && streamingMessage == null) {
-        continue;
+      if (receivedMessage.toolCalls != null && receivedMessage.toolCalls!.isNotEmpty) {
+        latestToolCalls = receivedMessage.toolCalls;
       }
 
-      if (streamingMessage == null) {
-        // Keep the first received message to add the content of the following messages
-        streamingMessage = receivedMessage;
+      final hasContent = receivedMessage.content.isNotEmpty;
 
-        // Update the active chat streams key with the ollama message
-        // to be able to show the stream in the chat.
-        // We also use this when the user switches between chats while streaming.
+      if (streamingMessage == null) {
+        // Skip empty chunks until we see content OR tool_calls — otherwise the
+        // thinking indicator would be replaced by an empty bubble.
+        if (!hasContent && latestToolCalls == null) continue;
+
+        streamingMessage = receivedMessage;
         _activeChatStreams[associatedChat.id] = streamingMessage;
 
-        // Be sure the user is in the same chat while the initial message is received
-        if (associatedChat.id == currentChat?.id) {
+        // Only show messages with visible text content in the chat list; tool-
+        // call-only assistant turns stay invisible and are dropped after the
+        // turn finishes.
+        if (associatedChat.id == currentChat?.id && hasContent) {
           _messages.add(streamingMessage);
         }
-      } else {
+      } else if (hasContent) {
         streamingMessage.content += receivedMessage.content;
       }
 
@@ -311,6 +548,7 @@ class ChatProvider extends ChangeNotifier {
 
     // Update created at time to the current time when the stream is finished
     streamingMessage?.createdAt = DateTime.now();
+    streamingMessage?.toolCalls = latestToolCalls;
 
     return streamingMessage;
   }
@@ -391,10 +629,12 @@ class ChatProvider extends ChangeNotifier {
     final settingsBox = Hive.box('settings');
     _ollamaService.baseUrl = settingsBox.get('serverAddress');
     _ollamaService.apiToken = settingsBox.get('apiToken');
+    _webSearchService.apiToken = settingsBox.get('apiToken');
 
     settingsBox.listenable(keys: ["serverAddress", "apiToken"]).addListener(() {
       _ollamaService.baseUrl = settingsBox.get('serverAddress');
       _ollamaService.apiToken = settingsBox.get('apiToken');
+      _webSearchService.apiToken = settingsBox.get('apiToken');
 
       // This will update empty chat state to dismiss "Tap to configure server address" message
       notifyListeners();
