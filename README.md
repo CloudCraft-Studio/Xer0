@@ -1,45 +1,47 @@
-# Reins
+# Xer0
 
-Reins is a multi-platform, open-source, privacy-first app designed for Ollama users. **It simplifies chat configurations** with a user-friendly interface to configure system prompts, change the chat model, and adjust options for each conversation **individually**. Reins ensures a smooth, customizable experience for anyone working with self-hosted LLMs.
+**Xer0** is a cyberpunk-themed chat client for [Ollama](https://ollama.com), built by [CloudCraft Studio](https://github.com/CloudCraft-Studio). It is a privacy-first, multi-platform app to chat with self-hosted LLMs, with per-conversation control over system prompts, model selection, and generation options.
 
-If you like the project, don't forget to give a ⭐️!
+> Xer0 is a fork of [Reins](https://github.com/ibrahimcetin/reins) by İbrahim Çetin. See [Credits & License](#credits--license).
 
-<a href="https://apps.apple.com/tr/app/reins-chat-for-ollama/id6739738501">
-  <img src=https://github.com/user-attachments/assets/fd7d615d-46c1-4266-b558-fb8e42555b04 alt="Download on the App Store" height=80 />
-</a>
+## What this fork changes
 
-<a href='https://flathub.org/apps/dev.ibrahimcetin.reins'>
-  <img src='https://github.com/user-attachments/assets/2c902ab8-bef6-44a7-ae50-40da9ead3a13' alt='Get it on Flathub' height=80 />
-</a>
+Compared to upstream Reins, Xer0:
 
-You can download it for iOS and macOS on the App Store and for Linux on Flathub.
+- **Rebrands** the app to Xer0 with a cyberpunk visual identity (neon palette, Orbitron / Chakra Petch fonts, glitch title, custom robot icon with "X" eyes and matching splash screen).
+- **Adds optional API token support** for connecting to Ollama Cloud / authenticated endpoints.
+- Uses the iOS bundle identifier `studio.cloudcraft.xer0`.
 
-You can find Android and Windows releases from [here](https://github.com/ibrahimcetin/reins/releases).
+## Features
 
-## Key Features
-- **Customizable Chat Configurations**: Configure system prompt, model, and options (e.g., temperature, seed, context size, max tokens) for each conversation.
-- **Model Selection & Switching**: Change the model of the current chat without interruption.
-- **Message Editing & Regeneration**: Edit and regenerate messages
-- **Save Custom Models**: Save system and chat prompts as new models.
-- **Image Integration**: Send and receive images within chats.
-- **Multiple Chat Management**: Easily manage and switch between multiple conversations.
-- **Real-Time Message Streaming**: Get messages instantly as they arrive.
+- **Per-conversation configuration**: system prompt, model, temperature, seed, context size, max tokens.
+- **Model selection & switching** mid-chat.
+- **Message editing & regeneration.**
+- **Save custom models** from system/chat prompts.
+- **Image integration** in chats.
+- **Multiple chat management** and **real-time message streaming**.
+- **Optional API token** for Ollama Cloud / authenticated servers.
 
-## Mobile Screenshots
-<img src=https://github.com/user-attachments/assets/29c06936-a1ff-430b-b892-3195db01497a alt="Main" height=500>
-<img src=https://github.com/user-attachments/assets/a18f5d7b-d547-4da7-adbe-332349597f69 alt="Configuration" height=500>
-<img src=https://github.com/user-attachments/assets/fd445119-9f7c-4dc1-bff6-df534f0a7a85 alt="Advanced Configurations" height=500>
-<img src=https://github.com/user-attachments/assets/2db44515-fd63-4263-a16a-beecc9373c96 alt="Edit & Regenerate" height=500>
-<img src=https://github.com/user-attachments/assets/ad8ce6bd-53a9-4ab4-b3b1-921a9ecd2a1e alt="Change Current Chat Model" height=500>
-<img src=https://github.com/user-attachments/assets/fedb9a5f-f840-49b8-a9eb-90f9d222f6f3 alt="Select Model" height=500>
-<img src=https://github.com/user-attachments/assets/f873ebdc-4a41-44ca-b5a2-75a1c6784ddd alt="Dark Theme" height=500>
+## Status
 
-## Large Screen Screenshots
-<img src=https://github.com/user-attachments/assets/ab34966e-8975-4ee9-a498-03b3ed2d086a alt="Main" height=375>
-<img src=https://github.com/user-attachments/assets/5f561d77-3b66-444e-aa6f-cf7d3ac60557 alt="Configuration" height=375>
+This is a private fork for internal CloudCraft Studio use. It is **not** published on any app store.
 
-## Contributing
-Contributions are welcome! Feel free to fork the repository, make changes, and submit a pull request.
+**Tested platforms:** iPhone 17 Pro (iOS 26.5) only, so far. Other iOS devices, macOS, Linux, Android, and Windows inherit upstream support but have not been verified in this fork.
 
-## License
-Reins is licensed under the GPL-3.0.
+## Building & running
+
+Requires the Flutter SDK (3.44+).
+
+```bash
+flutter pub get
+flutter run            # debug on a connected device
+flutter run --release  # release build
+```
+
+For iOS device installs, open `ios/Runner.xcworkspace` in Xcode and select your own signing **Team** under *Signing & Capabilities* before building.
+
+## Credits & License
+
+Xer0 is based on **[Reins](https://github.com/ibrahimcetin/reins)** by **İbrahim Çetin**, licensed under **GPL-3.0**. All original credit goes to the upstream author and contributors.
+
+In accordance with GPL-3.0, Xer0 is also distributed under the **[GPL-3.0](LICENSE)** license, and its source remains open. If you redistribute Xer0, you must keep this attribution and make the corresponding source available under the same license.
